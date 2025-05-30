@@ -35,10 +35,25 @@
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ]
             },
-            "ios" : {},
+            "ios" : {
+                "dSYMs" : false
+            },
             "sdkConfigs" : {},
             "splashscreen" : {
-                "androidStyle" : "common"
+                "androidStyle" : "common",
+                "android" : {
+                    "hdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-hdpi/ic_launcher.png",
+                    "xhdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-xhdpi/ic_launcher.png",
+                    "xxhdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-xxhdpi/ic_launcher.png"
+                }
+            },
+            "icons" : {
+                "android" : {
+                    "hdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-hdpi/ic_launcher.png",
+                    "xhdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-xhdpi/ic_launcher.png",
+                    "xxhdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-xxhdpi/ic_launcher.png",
+                    "xxxhdpi" : "C:/Users/jyzxc/Desktop/ic_launcher/mipmap-xxxhdpi/ic_launcher.png"
+                }
             }
         }
     },

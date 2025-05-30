@@ -459,6 +459,9 @@ export default {
       this.reset();
       this.title = "添加特殊疾病人群关系";
       this.open = true;
+      this.$nextTick(() => {
+        this.$refs.formPopup.open();
+      });
     },
     // 修改按钮操作
     handleUpdate(row) {

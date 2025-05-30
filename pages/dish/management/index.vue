@@ -90,7 +90,7 @@
 
     <!-- 加载中提示 -->
     <view class="loading-box" v-if="loading">
-      <uni-load-more status="loading" :contentText="loadingText"></uni-load-more>
+      <text>加载中...</text>
     </view>
 
     <!-- 分页器 -->
@@ -122,20 +122,12 @@ import { getDicts } from "@/api/system/dict/data";
 
 export default {
   name: "DishManagement",
-  components: {
-    uniLoadMore: () => import('@/uni_modules/uni-load-more/components/uni-load-more/uni-load-more.vue')
-  },
   data() {
     return {
       // 食堂ID
       canteenId: null,
       // 遮罩层
       loading: true,
-      loadingText: {
-        contentdown: "上拉加载更多",
-        contentrefresh: "加载中...",
-        contentnomore: "没有更多数据了"
-      },
       // 选中数组
       ids: [],
       // 非单个禁用
@@ -288,6 +280,16 @@ export default {
           }
         }
       });
+    },
+    // 添加页面配置，禁用下拉刷新
+    onPullDownRefresh() {
+      // 禁用下拉刷新
+      uni.stopPullDownRefresh();
+    },
+    // 禁用页面下拉刷新
+    onLoad() {
+      // 禁用下拉刷新
+      uni.stopPullDownRefresh();
     }
   }
 };
@@ -580,5 +582,7 @@ export default {
 .loading-box {
   padding: 40rpx 0;
   text-align: center;
+  color: #909399;
+  font-size: 28rpx;
 }
 </style> 

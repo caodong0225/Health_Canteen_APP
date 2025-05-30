@@ -47,12 +47,6 @@
     <view class="recommend-section" v-if="selectedCanteenId">
       <view class="section-header">
         <text class="section-title">推荐菜品</text>
-        <view class="header-actions">
-          <button class="refresh-btn" @click="handleRefresh">
-            <uni-icons type="refresh" size="16" color="#409EFF"></uni-icons>
-            <text>刷新</text>
-          </button>
-        </view>
       </view>
       
       <view class="dish-list" v-if="!recommendLoading">
@@ -107,7 +101,7 @@
 
       <!-- 加载中提示 -->
       <view class="loading-box" v-if="recommendLoading">
-        <uni-load-more status="loading" :contentText="loadingText"></uni-load-more>
+        <text>加载中...</text>
       </view>
 
       <!-- 无数据提示 -->
@@ -192,7 +186,6 @@ import { addCanteen_dish_relationship } from "@/api/relationship/canteen_dish_re
 export default {
   name: "DishRecommend",
   components: {
-    uniLoadMore: () => import('@/uni_modules/uni-load-more/components/uni-load-more/uni-load-more.vue'),
     uniIcons: () => import('@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue')
   },
   data() {
@@ -200,11 +193,6 @@ export default {
       // 遮罩层
       loading: true,
       recommendLoading: false,
-      loadingText: {
-        contentdown: "上拉加载更多",
-        contentrefresh: "加载中...",
-        contentnomore: "没有更多数据了"
-      },
       // 食堂列表
       canteenList: [],
       // 选中的食堂ID
@@ -336,11 +324,6 @@ export default {
           icon: 'error'
         });
       });
-    },
-    /** 刷新推荐列表 */
-    handleRefresh() {
-      this.currentPage = 1; // 重置页码
-      this.getRecommendList();
     },
     /** 获取口味标签 */
     getFlavorLabel(value) {
@@ -591,33 +574,6 @@ export default {
       font-weight: bold;
       color: #303133;
     }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
-
-      .action-btn {
-        display: flex;
-        align-items: center;
-        gap: 8rpx;
-        font-size: 26rpx;
-        color: #409EFF;
-        background: #f0f9ff;
-        border: 2rpx solid #409EFF;
-        border-radius: 32rpx;
-        padding: 12rpx 24rpx;
-        transition: all 0.3s ease;
-
-        &::after {
-          border: none;
-        }
-
-        &:active {
-          transform: scale(0.98);
-        }
-      }
-    }
   }
 }
 
@@ -754,6 +710,8 @@ export default {
 .loading-box {
   padding: 40rpx 0;
   text-align: center;
+  color: #909399;
+  font-size: 28rpx;
 }
 
 .empty-box {

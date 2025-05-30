@@ -12,8 +12,7 @@
   }, {
     "path": "pages/index",
     "style": {
-      "navigationBarTitleText": "iDiet",
-      "navigationStyle": "custom"
+      "navigationBarTitleText": "首页"
     }
   }, {
     "path": "pages/work/index",
@@ -133,7 +132,7 @@
     "path": "pages/dish/management/index",
     "style": {
       "navigationBarTitleText": "菜品管理",
-      "enablePullDownRefresh": true
+      "enablePullDownRefresh": false
     }
   }
 

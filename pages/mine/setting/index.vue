@@ -7,18 +7,6 @@
           <view>修改密码</view>
         </view>
       </view>
-      <view class="list-cell list-cell-arrow" @click="handleToUpgrade">
-        <view class="menu-item-box">
-          <view class="iconfont icon-refresh menu-icon"></view>
-          <view>检查更新</view>
-        </view>
-      </view>
-      <view class="list-cell list-cell-arrow" @click="handleCleanTmp">
-        <view class="menu-item-box">
-          <view class="iconfont icon-clean menu-icon"></view>
-          <view>清理缓存</view>
-        </view>
-      </view>
     </view>
     <view class="cu-list menu">
       <view class="cu-item item-box">
