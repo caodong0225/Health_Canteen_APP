@@ -53,6 +53,13 @@
             <view>应用设置</view>
           </view>
         </view>
+		<!-- 新增的退出登录选项 -->
+		<view class="list-cell logout-cell" @click="handleLogout">
+		  <view class="menu-item-box">
+			<view class="iconfont icon-logout menu-icon"></view>
+			<view class="logout-text">退出登录</view>
+		  </view>
+		</view>
       </view>
 
     </view>
@@ -84,6 +91,22 @@
       handleToSetting() {
         this.$tab.navigateTo('/pages/mine/setting/index')
       },
+	  handleLogout() {
+		uni.showModal({
+		  title: '确认退出',
+		  content: '确定要退出当前账号吗？',
+		  success: (res) => {
+			if (res.confirm) {
+			  // 执行退出操作
+			  uni.removeStorageSync('token'); // 清除token
+			  this.$tab.reLaunch('/pages/login')
+			  
+			  // 这里可以添加其他清理操作
+			  console.log('用户已退出登录');
+			}
+		  }
+		});
+	  },
       handleToLogin() {
         this.$tab.reLaunch('/pages/login')
       },
@@ -110,6 +133,22 @@
   page {
     background-color: #f5f6f7;
   }
+  
+	/* 退出登录项特殊样式 */
+	.logout-cell {
+	  margin-top: 20rpx; /* 与上方内容保持距离 */
+	  border-top: 1rpx solid #eee; /* 添加分割线 */
+	}
+
+	.logout-text {
+	  color: #e64340; /* 红色警示色 */
+	  font-weight: bold;
+	}
+
+	/* 退出图标颜色 */
+	.icon-logout {
+	  color: #e64340 !important;
+	}  
 
   .mine-container {
     width: 100%;

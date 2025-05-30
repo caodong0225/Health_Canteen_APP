@@ -645,26 +645,34 @@ export default {
       }
     }
 
-    .item-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 20rpx;
-      margin-top: 20rpx;
-      padding-top: 20rpx;
-      border-top: 1px solid #f5f5f5;
+	.item-actions {
+	  display: flex;
+	  justify-content: flex-end;
+	  gap: 20rpx;
+	  margin-top: 20rpx;
+	  padding-top: 20rpx;
+	  border-top: 1px solid #f5f5f5;
 
-      .action-link {
-        font-size: 28rpx;
-        color: #409EFF;
-        background: none;
-        padding: 0;
-        line-height: 1;
+	  .action-link {
+		font-size: 28rpx;
+		color: #409EFF;
+		background: none;
+		padding: 0;
+		line-height: 1;
+		border: none; /* 移除边框 */
+		border-radius: 0; /* 移除圆角 */
+		box-shadow: none; /* 移除阴影 */
+		
+		&::after {
+		  border: none; /* 移除小程序默认边框 */
+		}
 
-        &.delete {
-          color: #F56C6C;
-        }
-      }
-    }
+		&.delete {
+		  color: #F56C6C;
+		  border: none; /* 确保删除按钮也没有边框 */
+		}
+	  }
+	}
   }
 }
 
