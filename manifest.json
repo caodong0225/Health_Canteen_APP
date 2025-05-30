@@ -1,5 +1,5 @@
 {
-    "name" : "智膳云枢",
+    "name" : "iDiet",
     "appid" : "__UNI__9829216",
     "description" : "",
     "versionName" : "1.2.0",
@@ -36,7 +36,10 @@
                 ]
             },
             "ios" : {},
-            "sdkConfigs" : {}
+            "sdkConfigs" : {},
+            "splashscreen" : {
+                "androidStyle" : "common"
+            }
         }
     },
     "quickapp" : {},

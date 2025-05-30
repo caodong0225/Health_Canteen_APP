@@ -7,12 +7,6 @@
           <text class="welcome-title">欢迎回来</text>
           <text class="welcome-subtitle">今天是 {{ currentTime }}，系统运行正常。</text>
         </view>
-        <view class="welcome-actions">
-          <button class="action-btn" @click="handleSetting">
-            <uni-icons type="gear" size="20"></uni-icons>
-            <text>系统详情</text>
-          </button>
-        </view>
       </view>
     </view>
 
