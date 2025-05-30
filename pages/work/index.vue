@@ -65,9 +65,40 @@
           </view>
         </uni-grid-item>
         <uni-grid-item>
-          <view class="grid-item-box" @click="handleGridClick('suggestion')">
-            <uni-icons type="info-filled" size="30" color="#909399"></uni-icons>
-            <text class="text">健康建议</text>
+          <view class="grid-item-box" style="visibility: hidden;">
+            <uni-icons type="home-filled" size="30" color="#409EFF"></uni-icons>
+            <text class="text">占位</text>
+          </view>
+        </uni-grid-item>
+      </uni-grid>
+    </view>
+
+    <!-- 菜品管理模块 -->
+    <uni-section title="菜品管理" type="line"></uni-section>
+    <view class="grid-body">
+      <uni-grid :column="4" :showBorder="false">
+        <uni-grid-item>
+          <view class="grid-item-box" @click="handleGridClick('canteen')">
+            <uni-icons type="home-filled" size="30" color="#409EFF"></uni-icons>
+            <text class="text">食堂列表</text>
+          </view>
+        </uni-grid-item>
+        <uni-grid-item>
+          <view class="grid-item-box" @click="handleGridClick('dishList')">
+            <uni-icons type="list" size="30" color="#67C23A"></uni-icons>
+            <text class="text">菜品列表</text>
+          </view>
+        </uni-grid-item>
+        <uni-grid-item>
+          <view class="grid-item-box" @click="handleGridClick('dishRecommend')">
+            <uni-icons type="star-filled" size="30" color="#E6A23C"></uni-icons>
+            <text class="text">菜品推荐</text>
+          </view>
+        </uni-grid-item>
+        <uni-grid-item>
+          <view class="grid-item-box" style="visibility: hidden;">
+            <uni-icons type="home-filled" size="30" color="#409EFF"></uni-icons>
+            <text class="text">占位</text>
           </view>
         </uni-grid-item>
       </uni-grid>
@@ -83,12 +114,6 @@
         swiperDotIndex: 0,
         data: [{
             image: '/static/images/banner/banner01.jpg'
-          },
-          {
-            image: '/static/images/banner/banner02.jpg'
-          },
-          {
-            image: '/static/images/banner/banner03.jpg'
           }
         ]
       }
@@ -136,7 +161,7 @@
             break;
           case 'healthData':
             uni.navigateTo({
-              url: '/pages/user/health/index'
+              url: '/pages/health/index'
             });
             break;
           case 'nutrition':
@@ -145,6 +170,21 @@
             });
             break;
           case 'suggestion':
+            uni.navigateTo({
+              url: '/pages/dish/recommend/index'
+            });
+            break;
+          case 'canteen':
+            uni.navigateTo({
+              url: '/pages/resource/canteen/index'
+            });
+            break;
+          case 'dishList':
+            uni.navigateTo({
+              url: '/pages/dish/management/index'
+            });
+            break;
+          case 'dishRecommend':
             uni.navigateTo({
               url: '/pages/dish/recommend/index'
             });

@@ -12,7 +12,7 @@
   }, {
     "path": "pages/index",
     "style": {
-      "navigationBarTitleText": "智膳云枢",
+      "navigationBarTitleText": "iDiet",
       "navigationStyle": "custom"
     }
   }, {
@@ -118,9 +118,23 @@
   },
   {
     "path": "pages/dish/recommend/index",
+    "style": {
+      "navigationBarTitleText": "菜品推荐",
+      "enablePullDownRefresh": false
+    }
+  },
+  {
+    "path": "pages/resource/canteen/index",
     "style":{
-      "navigationBarTitleText": "菜品推荐管理"
+      "navigationBarTitleText": "食堂列表"
     } 
+  },
+  {
+    "path": "pages/dish/management/index",
+    "style": {
+      "navigationBarTitleText": "菜品管理",
+      "enablePullDownRefresh": true
+    }
   }
 
 ],

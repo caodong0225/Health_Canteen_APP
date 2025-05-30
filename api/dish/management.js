@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// 查询菜品管理列表
+// 查询菜品列表
 export function listManagement(query) {
   return request({
     url: '/dish/management/list',
@@ -9,7 +9,7 @@ export function listManagement(query) {
   })
 }
 
-// 查询菜品管理详细
+// 查询菜品详细
 export function getManagement(managementId) {
   return request({
     url: '/dish/management/' + managementId,
@@ -17,7 +17,7 @@ export function getManagement(managementId) {
   })
 }
 
-// 新增菜品管理
+// 新增菜品
 export function addManagement(data) {
   return request({
     url: '/dish/management',
@@ -26,7 +26,7 @@ export function addManagement(data) {
   })
 }
 
-// 修改菜品管理
+// 修改菜品
 export function updateManagement(data) {
   return request({
     url: '/dish/management',
@@ -35,7 +35,7 @@ export function updateManagement(data) {
   })
 }
 
-// 删除菜品管理
+// 删除菜品
 export function delManagement(managementId) {
   return request({
     url: '/dish/management/' + managementId,
@@ -43,10 +43,10 @@ export function delManagement(managementId) {
   })
 }
 
-// 通过食堂ID查询菜品管理列表
-export function listManagementByCanteenId(canteenId,query) {
+// 根据食堂ID查询菜品列表
+export function listManagementByCanteenId(canteenId, query) {
   return request({
-    url: `/dish/management/list/${canteenId}`,
+    url: '/dish/management/canteen/' + canteenId,
     method: 'get',
     params: query
   })

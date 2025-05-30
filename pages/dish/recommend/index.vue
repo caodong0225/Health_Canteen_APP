@@ -1,356 +1,181 @@
 <template>
-  <view class="recommend-container">
-    <!-- 搜索表单 -->
-    <view class="search-form">
-      <view class="form-item">
-        <text class="label">是否合理</text>
-        <picker @change="handleIsOkChange" :value="isOkIndex" :range="isOkOptions" range-key="label">
-          <view class="picker-value">
-            {{ isOkOptions[isOkIndex].label }}
-          </view>
-        </picker>
+  <view class="app-container">
+    <!-- 食堂选择 -->
+    <view class="canteen-select">
+      <view class="select-header" @click="toggleCanteenList">
+        <text class="header-title">选择食堂</text>
+        <uni-icons 
+          :type="showCanteenList ? 'top' : 'bottom'" 
+          size="16" 
+          color="#909399"
+        ></uni-icons>
       </view>
-      
-      <view class="form-item">
-        <text class="label">推荐用户</text>
-        <view class="user-select" @click="showUserSearch">
-          <text class="select-value">{{ queryParams.userName || '请选择用户' }}</text>
-          <uni-icons type="search" size="16" color="#909399"></uni-icons>
+      <view class="canteen-list" v-if="!loading && showCanteenList">
+        <view 
+          class="canteen-card" 
+          v-for="item in canteenList" 
+          :key="item.canteenId"
+          :class="{ active: selectedCanteenId === item.canteenId }"
+          @click="handleSelectCanteen(item)"
+        >
+          <view class="canteen-info">
+            <text class="canteen-name">{{ item.name }}</text>
+            <text class="canteen-desc">{{ item.characteristic }}</text>
+          </view>
+          <uni-icons 
+            v-if="selectedCanteenId === item.canteenId" 
+            type="checkmarkempty" 
+            size="20" 
+            color="#67C23A"
+          ></uni-icons>
         </view>
       </view>
-      
-      <view class="form-item">
-        <text class="label">推荐类型</text>
-        <picker @change="handleTypeChange" :value="typeIndex" :range="typeOptions" range-key="label">
-          <view class="picker-value">
-            {{ typeOptions[typeIndex].label }}
-          </view>
-        </picker>
-      </view>
-      
-      <view class="form-buttons">
-        <button class="search-btn" @click="handleQuery">搜索</button>
-        <button class="reset-btn" @click="resetQuery">重置</button>
+      <!-- 已选食堂显示 -->
+      <view class="selected-canteen" v-if="selectedCanteen && !showCanteenList">
+        <view class="canteen-info">
+          <text class="canteen-name">{{ selectedCanteen.name }}</text>
+          <text class="canteen-desc">{{ selectedCanteen.characteristic }}</text>
+        </view>
+        <button class="change-btn" @click="toggleCanteenList">
+          <text>更换</text>
+          <uni-icons type="right" size="14" color="#409EFF"></uni-icons>
+        </button>
       </view>
     </view>
 
-    <!-- 操作按钮 -->
-    <view class="action-buttons">
-      <button class="action-btn export-btn" @click="handleExport">
-        <uni-icons type="download" size="16" color="#fff"></uni-icons>
-        <text>导出</text>
-      </button>
-    </view>
-
-    <!-- 数据列表 -->
-    <view class="data-list">
-      <view class="list-item" v-for="(item, index) in recommendList" :key="index">
-        <view class="item-header">
-          <text class="user-name" @click="showUserDetail(item.recommendTo)">
-            {{ getUserName(item.recommendTo) }}
-          </text>
-          <text class="recommend-status" :class="item.isOk === 1 ? 'status-ok' : 'status-no'">
-            {{ item.isOk === 1 ? '合理' : '不合理' }}
-          </text>
-        </view>
-        
-        <view class="item-content">
-          <view class="content-row">
-            <text class="label">推荐类型：</text>
-            <text class="value type-tag" :class="getTypeClass(item.type)">{{ getTypeText(item.type) }}</text>
-          </view>
-          <view class="content-row">
-            <text class="label">推荐菜品：</text>
-            <view class="dish-list">
-              <text 
-                v-for="(dish, dIndex) in parseDishes(item.dishes)" 
-                :key="dIndex"
-                class="dish-tag"
-                @click="handleViewDish(item.dishes, dIndex)"
-              >{{ dish.name }}</text>
-            </view>
-          </view>
-          <view class="content-row" v-if="item.remark">
-            <text class="label">备注：</text>
-            <text class="value">{{ item.remark }}</text>
-          </view>
-          <view class="content-row">
-            <text class="label">创建时间：</text>
-            <text class="value">{{ item.createTime }}</text>
-          </view>
-        </view>
-        
-        <view class="item-actions">
-          <button class="action-link" @click="handleUpdate(item)">修改</button>
-          <button class="action-link delete" @click="handleDelete(item)">删除</button>
-        </view>
-      </view>
-    </view>
-
-    <!-- 分页器 -->
-    <view class="pagination" v-if="total > 0">
-      <view class="page-info">
-        共 {{ total }} 条记录
-      </view>
-      <view class="page-buttons">
-        <button 
-          class="page-btn" 
-          :disabled="queryParams.pageNum <= 1"
-          @click="handlePageChange(queryParams.pageNum - 1)"
-        >上一页</button>
-        <text class="page-text">{{ queryParams.pageNum }} / {{ totalPages }}</text>
-        <button 
-          class="page-btn" 
-          :disabled="queryParams.pageNum >= totalPages"
-          @click="handlePageChange(queryParams.pageNum + 1)"
-        >下一页</button>
-      </view>
-    </view>
-
-    <!-- 用户搜索弹窗 -->
-    <uni-popup ref="userSearchPopup" type="center">
-      <view class="popup-content">
-        <view class="popup-header">
-          <text class="popup-title">选择用户</text>
-          <button class="close-btn" @click="closeUserSearch">
-            <uni-icons type="close" size="20" color="#909399"></uni-icons>
+    <!-- 推荐菜品列表 -->
+    <view class="recommend-section" v-if="selectedCanteenId">
+      <view class="section-header">
+        <text class="section-title">推荐菜品</text>
+        <view class="header-actions">
+          <button class="refresh-btn" @click="handleRefresh">
+            <uni-icons type="refresh" size="16" color="#409EFF"></uni-icons>
+            <text>刷新</text>
           </button>
         </view>
-        <view class="popup-body">
-          <user-search @select="handleUserSelect" />
-        </view>
       </view>
-    </uni-popup>
-
-    <!-- 菜品详情弹窗 -->
-    <uni-popup ref="dishDetailPopup" type="center">
-      <view class="popup-content dish-detail-popup">
-        <view class="popup-header">
-          <text class="popup-title">菜品详情</text>
-          <button class="close-btn" @click="closeDishDetail">
-            <uni-icons type="close" size="20" color="#909399"></uni-icons>
-          </button>
-        </view>
-        <view class="popup-body">
-          <view class="dish-detail" v-if="viewForm">
-            <image class="dish-image" :src="viewForm.image" mode="aspectFill"></image>
+      
+      <view class="dish-list" v-if="!recommendLoading">
+        <view 
+          class="dish-card" 
+          v-for="item in recommendList" 
+          :key="item.managementId"
+        >
+          <view class="dish-header">
+            <text class="dish-name">{{ item.name }}</text>
+            <text class="dish-price">¥{{ item.price }}</text>
+          </view>
+          <view class="dish-content">
+            <image 
+              v-if="item.image" 
+              :src="item.image" 
+              mode="aspectFill" 
+              class="dish-image"
+              @click="previewImage(item.image)"
+            ></image>
             <view class="dish-info">
-              <text class="dish-name">{{ viewForm.name }}</text>
-              <view class="dish-tags">
-                <text class="tag">{{ viewForm.tag }}</text>
-                <text class="tag">{{ getFlavorText(viewForm.flavor) }}</text>
+              <view class="info-item">
+                <text class="label">菜系：</text>
+                <text class="value">{{ item.tag }}</text>
               </view>
-              <view class="dish-meta">
-                <text class="price">¥{{ viewForm.price }}</text>
-                <text class="view">访问量: {{ viewForm.view }}</text>
+              <view class="info-item">
+                <text class="label">口味：</text>
+                <text class="value">{{ getFlavorLabel(item.flavor) }}</text>
               </view>
-              
-              <view class="dish-section" v-if="viewForm.ingredient">
-                <text class="section-title">食材清单</text>
-                <view class="ingredient-list">
-                  <text 
-                    v-for="(item, i) in parseIngredients(viewForm.ingredient)" 
-                    :key="i"
-                    class="ingredient-tag"
-                  >{{ item.name }}{{ item.quantity ? `: ${item.quantity}` : '' }}</text>
-                </view>
-              </view>
-              
-              <view class="dish-section" v-if="viewForm.step">
-                <text class="section-title">烹饪步骤</text>
-                <view class="step-list">
-                  <view 
-                    v-for="(step, i) in parseSteps(viewForm.step)" 
-                    :key="i"
-                    class="step-item"
-                  >
-                    <text class="step-number">步骤 {{ step.number }}</text>
-                    <text class="step-desc">{{ step.description }}</text>
-                  </view>
-                </view>
-              </view>
-              
-              <view class="dish-section" v-if="viewForm.tip">
-                <text class="section-title">小贴士</text>
-                <text class="tip-text">{{ viewForm.tip }}</text>
-              </view>
-              
-              <view class="dish-section" v-if="viewForm.remark">
-                <text class="section-title">说明</text>
-                <text class="remark-text">{{ viewForm.remark }}</text>
+              <view class="info-item">
+                <text class="label">访问量：</text>
+                <text class="value">{{ item.view }}</text>
               </view>
             </view>
+          </view>
+          <view class="dish-footer">
+            <button 
+              class="recommend-btn" 
+              :class="{ 'recommended': item.recommended }"
+              @click="handleRecommend(item)"
+            >
+              <uni-icons 
+                :type="item.recommended ? 'checkmarkempty' : 'plusempty'" 
+                size="16" 
+                :color="item.recommended ? '#fff' : '#409EFF'"
+              ></uni-icons>
+              <text>{{ item.recommended ? '已推荐' : '推荐' }}</text>
+            </button>
           </view>
         </view>
       </view>
-    </uni-popup>
 
-    <!-- 用户详情弹窗 -->
-    <uni-popup ref="userDetailPopup" type="center">
-      <view class="popup-content user-detail-popup">
-        <view class="popup-header">
-          <text class="popup-title">用户详细信息</text>
-          <button class="close-btn" @click="closeUserDetail">
-            <uni-icons type="close" size="20" color="#909399"></uni-icons>
-          </button>
+      <!-- 加载中提示 -->
+      <view class="loading-box" v-if="recommendLoading">
+        <uni-load-more status="loading" :contentText="loadingText"></uni-load-more>
+      </view>
+
+      <!-- 无数据提示 -->
+      <view class="empty-box" v-if="!recommendLoading && recommendList.length === 0">
+        <text class="empty-text">暂无推荐菜品</text>
+      </view>
+
+      <!-- 分页器 -->
+      <view class="pagination" v-if="total > 0">
+        <view class="page-info">
+          共 {{ total }} 条记录
         </view>
-        <view class="popup-body">
-          <view class="user-detail" v-if="detailForm">
-            <view class="user-header">
-              <image class="user-avatar" :src="detailForm.avatar || '/static/images/profile.jpg'" mode="aspectFill"></image>
-              <view class="user-basic">
-                <text class="user-nickname">{{ detailForm.nickName }}</text>
-                <text class="user-name">{{ detailForm.userName }}</text>
-              </view>
-            </view>
-            
-            <view class="info-section">
-              <view class="info-row">
-                <text class="label">邮箱</text>
-                <text class="value">{{ detailForm.email }}</text>
-              </view>
-              <view class="info-row">
-                <text class="label">手机号</text>
-                <text class="value">{{ detailForm.phonenumber }}</text>
-              </view>
-              <view class="info-row">
-                <text class="label">性别</text>
-                <text class="value">{{ getSexText(detailForm.sex) }}</text>
-              </view>
-              <view class="info-row">
-                <text class="label">状态</text>
-                <text class="value status-tag" :class="detailForm.status === '0' ? 'status-normal' : 'status-disabled'">
-                  {{ detailForm.status === '0' ? '正常' : '停用' }}
-                </text>
-              </view>
-            </view>
-            
-            <view class="health-section">
-              <text class="section-title">健康指标</text>
-              <view class="health-grid">
-                <view class="health-item">
-                  <text class="label">身高</text>
-                  <text class="value">{{ detailForm.height }}cm</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">体重</text>
-                  <text class="value">{{ detailForm.weight }}kg</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">年龄</text>
-                  <text class="value">{{ detailForm.age }}岁</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">血糖值</text>
-                  <text class="value">{{ detailForm.bloodGlucose }}mmol/L</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">收缩压</text>
-                  <text class="value">{{ detailForm.systolicPressure }}mmHg</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">舒张压</text>
-                  <text class="value">{{ detailForm.diastolicPressure }}mmHg</text>
-                </view>
-                <view class="health-item">
-                  <text class="label">总胆固醇</text>
-                  <text class="value">{{ detailForm.totalCholesterol }}mmol/L</text>
-                </view>
-              </view>
-            </view>
-            
-            <view class="preference-section" v-if="userPreferences">
-              <text class="section-title">用户偏好</text>
-              <view class="preference-grid">
-                <view class="preference-item">
-                  <text class="label">口味偏好</text>
-                  <text class="value">{{ userPreferences.口味偏好 }}</text>
-                </view>
-                <view class="preference-item">
-                  <text class="label">运动习惯</text>
-                  <text class="value">{{ userPreferences.运动习惯 }}</text>
-                </view>
-                <view class="preference-item">
-                  <text class="label">健康目标</text>
-                  <text class="value">{{ userPreferences.健康目标 }}</text>
-                </view>
-                <view class="preference-item" v-if="userPreferences.过敏原 && userPreferences.过敏原.length">
-                  <text class="label">过敏原</text>
-                  <view class="tag-list">
-                    <text 
-                      v-for="(item, index) in userPreferences.过敏原" 
-                      :key="index"
-                      class="tag warning"
-                    >{{ item }}</text>
-                  </view>
-                </view>
-                <view class="preference-item" v-if="userPreferences.饮食习惯 && userPreferences.饮食习惯.length">
-                  <text class="label">饮食习惯</text>
-                  <view class="tag-list">
-                    <text 
-                      v-for="(item, index) in userPreferences.饮食习惯" 
-                      :key="index"
-                      class="tag info"
-                    >{{ item }}</text>
-                  </view>
-                </view>
-              </view>
-            </view>
-          </view>
+        <view class="page-buttons">
+          <button 
+            class="page-btn" 
+            :disabled="currentPage <= 1"
+            @click="handlePageChange(currentPage - 1)"
+          >上一页</button>
+          <text class="page-text">{{ currentPage }} / {{ totalPages }}</text>
+          <button 
+            class="page-btn" 
+            :disabled="currentPage >= totalPages"
+            @click="handlePageChange(currentPage + 1)"
+          >下一页</button>
         </view>
       </view>
-    </uni-popup>
+    </view>
 
-    <!-- 新增/修改弹窗 -->
-    <uni-popup ref="formPopup" type="center">
-      <view class="popup-content form-popup">
+    <!-- 未选择食堂提示 -->
+    <view class="empty-tip" v-else-if="!selectedCanteenId">
+      <text class="tip-text">请先选择食堂</text>
+    </view>
+
+    <!-- 批量推荐弹窗 -->
+    <uni-popup ref="batchPopup" type="center">
+      <view class="batch-popup">
         <view class="popup-header">
-          <text class="popup-title">{{ title }}</text>
-          <button class="close-btn" @click="cancel">
-            <uni-icons type="close" size="20" color="#909399"></uni-icons>
-          </button>
+          <text class="popup-title">选择推荐菜品</text>
+          <uni-icons type="closeempty" size="20" color="#909399" @click="closeBatchPopup"></uni-icons>
         </view>
-        <view class="popup-body">
-          <view class="form-content">
-            <view class="form-item">
-              <text class="label">推荐类型</text>
-              <picker 
-                @change="handleFormTypeChange" 
-                :value="formTypeIndex" 
-                :range="formTypeOptions" 
-                range-key="label"
-              >
-                <view class="picker-value">
-                  {{ formTypeOptions[formTypeIndex].label }}
-                </view>
-              </picker>
-            </view>
-            
-            <view class="form-item">
-              <text class="label">备注</text>
-              <input 
-                class="input" 
-                v-model="form.remark" 
-                placeholder="请输入备注"
-                type="text"
-              />
-            </view>
-            
-            <view class="form-item">
-              <text class="label">是否合理</text>
-              <radio-group class="radio-group" @change="handleFormIsOkChange">
-                <label class="radio" v-for="(item, index) in formIsOkOptions" :key="index">
-                  <radio :value="item.value" :checked="form.isOk === parseInt(item.value)" />
-                  <text>{{ item.label }}</text>
-                </label>
-              </radio-group>
+        <view class="popup-content">
+          <view class="dish-grid">
+            <view 
+              class="dish-item" 
+              v-for="item in allDishList" 
+              :key="item.managementId"
+              :class="{ 'selected': selectedDishes.includes(item.managementId) }"
+              @click="toggleDishSelection(item)"
+            >
+              <image 
+                v-if="item.image" 
+                :src="item.image" 
+                mode="aspectFill" 
+                class="dish-image"
+              ></image>
+              <view class="dish-info">
+                <text class="dish-name">{{ item.name }}</text>
+                <text class="dish-price">¥{{ item.price }}</text>
+              </view>
+              <view class="select-icon" v-if="selectedDishes.includes(item.managementId)">
+                <uni-icons type="checkmarkempty" size="20" color="#67C23A"></uni-icons>
+              </view>
             </view>
           </view>
-          
-          <view class="form-buttons">
-            <button class="submit-btn" @click="submitForm">确定</button>
-            <button class="cancel-btn" @click="cancel">取消</button>
-          </view>
+        </view>
+        <view class="popup-footer">
+          <button class="cancel-btn" @click="closeBatchPopup">取消</button>
+          <button class="confirm-btn" @click="handleBatchConfirm">确定推荐</button>
         </view>
       </view>
     </uni-popup>
@@ -358,1011 +183,777 @@
 </template>
 
 <script>
-import { listRecommend, getRecommend, delRecommend, addRecommend, updateRecommend } from "@/api/dish/recommend";
-import { getUser, listUser } from "@/api/system/user";
-import UserSearch from '@/components/user/UserSearch.vue';
+import { listCanteen } from "@/api/resource/canteen";
+import { listDish } from "@/api/smart/ai";
+import { getDicts } from "@/api/system/dict/data";
+import { addManagement } from "@/api/dish/management";
+import { addCanteen_dish_relationship } from "@/api/relationship/canteen_dish_relationship";
 
 export default {
+  name: "DishRecommend",
   components: {
-    UserSearch
+    uniLoadMore: () => import('@/uni_modules/uni-load-more/components/uni-load-more/uni-load-more.vue'),
+    uniIcons: () => import('@/uni_modules/uni-icons/components/uni-icons/uni-icons.vue')
   },
   data() {
     return {
       // 遮罩层
       loading: true,
-      // 选中数组
-      ids: [],
-      // 非单个禁用
-      single: true,
-      // 非多个禁用
-      multiple: true,
-      // 显示搜索条件
-      showSearch: true,
-      // 总条数
-      total: 0,
-      // 推荐记录列表
+      recommendLoading: false,
+      loadingText: {
+        contentdown: "上拉加载更多",
+        contentrefresh: "加载中...",
+        contentnomore: "没有更多数据了"
+      },
+      // 食堂列表
+      canteenList: [],
+      // 选中的食堂ID
+      selectedCanteenId: null,
+      // 所有菜品数据
+      allDishList: [],
+      // 当前页数据
       recommendList: [],
-      // 弹出层标题
-      title: "",
+      // 字典数据
+      dict: {
+        type: {
+          food_flavor: []
+        }
+      },
       // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        isOk: null,
-        recommendTo: null,
-        userName: null,
-        type: null
+        canteenId: null
       },
-      // 表单参数
-      form: {
-        id: null,
-        dishIds: null,
-        createTime: null,
-        remark: null,
-        isOk: 1,
-        updateTime: null,
-        updateBy: null,
-        recommendTo: null,
-        userName: null,
-        type: null
-      },
-      // 搜索表单的是否合理选项
-      isOkOptions: [
-        { value: '', label: '全部' },
-        { value: '1', label: '是' },
-        { value: '0', label: '否' }
-      ],
-      // 编辑表单的是否合理选项
-      formIsOkOptions: [
-        { value: '1', label: '是' },
-        { value: '0', label: '否' }
-      ],
-      isOkIndex: 0,
-      // 查看详情相关
-      viewForm: null,
-      // 用户列表
-      userList: [],
-      // 用户详情数据
-      detailForm: {},
-      // 搜索表单的推荐类型选项
-      typeOptions: [
-        { value: '', label: '全部' },
-        { value: '0', label: '基于口味' },
-        { value: '1', label: '基于健康' },
-        { value: '2', label: '基于疾病' }
-      ],
-      // 编辑表单的推荐类型选项
-      formTypeOptions: [
-        { value: '0', label: '基于口味' },
-        { value: '1', label: '基于健康' },
-        { value: '2', label: '基于疾病' }
-      ],
-      typeIndex: 0,
-      formTypeIndex: 0,
+      // 总条数
+      total: 0,
+      // 是否显示食堂列表
+      showCanteenList: true,
+      // 当前选中的食堂信息
+      selectedCanteen: null,
+      // 分页参数
+      pageSize: 5,
+      currentPage: 1,
+      selectedDishes: [], // 新增：存储选中的菜品ID
     };
   },
   computed: {
     totalPages() {
-      return Math.ceil(this.total / this.queryParams.pageSize);
-    },
-    userPreferences() {
-      if (!this.detailForm.flavor) return null;
-      try {
-        return JSON.parse(this.detailForm.flavor);
-      } catch (e) {
-        return null;
-      }
+      return Math.ceil(this.total / this.pageSize);
     }
   },
-  onLoad() {
-    this.getList();
-    // 获取所有用户信息
-    listUser({size:10000}).then(response => {
-      this.userList = response.rows;
-    });
+  created() {
+    this.getDicts();
+    this.getCanteenList();
   },
   methods: {
-    /** 查询推荐记录列表 */
-    getList() {
+    /** 获取字典数据 */
+    getDicts() {
+      getDicts("food_flavor").then(response => {
+        this.dict.type.food_flavor = response.data;
+      });
+    },
+    /** 获取食堂列表 */
+    getCanteenList() {
       this.loading = true;
-      listRecommend(this.queryParams).then(response => {
-        this.recommendList = response.rows;
-        this.total = response.total;
+      listCanteen().then(response => {
+        this.canteenList = response.rows;
+        this.loading = false;
+      }).catch(() => {
         this.loading = false;
       });
     },
-    
-    /** 是否合理选择器变化 */
-    handleIsOkChange(e) {
-      this.isOkIndex = e.detail.value;
-      this.queryParams.isOk = this.isOkOptions[this.isOkIndex].value || null;
+    /** 切换食堂列表显示状态 */
+    toggleCanteenList() {
+      this.showCanteenList = !this.showCanteenList;
     },
-    
-    /** 搜索按钮操作 */
-    handleQuery() {
-      this.queryParams.pageNum = 1;
-      this.getList();
+    /** 选择食堂 */
+    handleSelectCanteen(canteen) {
+      this.selectedCanteenId = canteen.canteenId;
+      this.selectedCanteen = canteen;
+      this.queryParams.canteenId = canteen.canteenId;
+      this.currentPage = 1; // 重置页码
+      this.getRecommendList();
     },
-    
-    /** 重置按钮操作 */
-    resetQuery() {
-      this.isOkIndex = 0;
-      this.typeIndex = 0;
-      this.queryParams = {
-        pageNum: 1,
-        pageSize: 10,
-        isOk: null,
-        recommendTo: null,
-        userName: null,
-        type: null
-      };
-      this.handleQuery();
-    },
-    
-    /** 页码变化 */
-    handlePageChange(page) {
-      this.queryParams.pageNum = page;
-      this.getList();
-    },
-    
-    /** 新增按钮操作 */
-    handleAdd() {
-      this.reset();
-      this.title = "添加推荐记录";
-      this.$refs.formPopup.open();
-    },
-    
-    /** 修改按钮操作 */
-    handleUpdate(row) {
-      this.reset();
-      const id = row.id || this.ids;
-      getRecommend(id).then(response => {
-        this.form = response.data;
-        this.formTypeIndex = this.formTypeOptions.findIndex(item => item.value === this.form.type.toString());
-        this.$refs.formPopup.open();
-        this.title = "修改推荐记录";
+    /** 获取推荐菜品列表 */
+    getRecommendList() {
+      if (!this.queryParams.canteenId) return;
+      
+      this.recommendLoading = true;
+      listDish(this.queryParams.canteenId).then(response => {
+        // 保存所有数据，并标记已推荐的菜品
+        this.allDishList = response.data.map(item => ({
+          ...item,
+          recommended: item.recommended || false // 根据后端返回的推荐状态设置
+        }));
+        this.total = this.allDishList.length;
+        // 更新当前页数据
+        this.updateCurrentPageData();
+        this.recommendLoading = false;
+      }).catch(() => {
+        this.recommendLoading = false;
+        uni.showToast({
+          title: '获取菜品列表失败',
+          icon: 'error'
+        });
       });
     },
-    
-    /** 提交按钮 */
-    submitForm() {
-      if (!this.form.type) {
+    /** 更新当前页数据 */
+    updateCurrentPageData() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      const end = start + this.pageSize;
+      this.recommendList = this.allDishList.slice(start, end);
+    },
+    /** 页码变化 */
+    handlePageChange(page) {
+      this.currentPage = page;
+      this.updateCurrentPageData();
+    },
+    /** 推荐菜品 */
+    handleRecommend(dish) {
+      if (dish.recommended) {
         uni.showToast({
-          title: '请输入推荐类型',
+          title: '该菜品已推荐',
           icon: 'none'
         });
         return;
       }
-      
-      if (this.form.id != null) {
-        updateRecommend(this.form).then(response => {
-          uni.showToast({
-            title: '修改成功',
-            icon: 'success'
-          });
-          this.$refs.formPopup.close();
-          this.getList();
+
+      // 添加食堂-菜品映射关系
+      addCanteen_dish_relationship({
+        canteenId: this.queryParams.canteenId,
+        dishId: dish.managementId
+      }).then(() => {
+        uni.showToast({
+          title: '推荐成功',
+          icon: 'success'
         });
+        // 刷新列表
+        this.getRecommendList();
+      }).catch(() => {
+        uni.showToast({
+          title: '推荐失败',
+          icon: 'error'
+        });
+      });
+    },
+    /** 刷新推荐列表 */
+    handleRefresh() {
+      this.currentPage = 1; // 重置页码
+      this.getRecommendList();
+    },
+    /** 获取口味标签 */
+    getFlavorLabel(value) {
+      if (!value) return '';
+      const flavor = this.dict.type.food_flavor.find(item => item.dictValue === value);
+      return flavor ? flavor.dictLabel : '';
+    },
+    /** 预览图片 */
+    previewImage(url) {
+      uni.previewImage({
+        urls: [url],
+        current: url
+      });
+    },
+    /** 打开批量推荐弹窗 */
+    handleBatchRecommend() {
+      this.selectedDishes = [];
+      this.$refs.batchPopup.open();
+    },
+    /** 关闭批量推荐弹窗 */
+    closeBatchPopup() {
+      this.$refs.batchPopup.close();
+      this.selectedDishes = [];
+    },
+    /** 切换菜品选中状态 */
+    toggleDishSelection(dish) {
+      const index = this.selectedDishes.indexOf(dish.managementId);
+      if (index === -1) {
+        this.selectedDishes.push(dish.managementId);
       } else {
-        addRecommend(this.form).then(response => {
-          uni.showToast({
-            title: '新增成功',
-            icon: 'success'
-          });
-          this.$refs.formPopup.close();
-          this.getList();
-        });
+        this.selectedDishes.splice(index, 1);
       }
     },
-    
-    /** 取消按钮 */
-    cancel() {
-      this.$refs.formPopup.close();
-      this.reset();
-    },
-    
-    /** 表单重置 */
-    reset() {
-      this.form = {
-        id: null,
-        dishIds: null,
-        createTime: null,
-        remark: null,
-        isOk: 1,
-        updateTime: null,
-        updateBy: null,
-        recommendTo: null,
-        userName: null,
-        type: null
-      };
-      this.formTypeIndex = 0;
-    },
-    
-    /** 删除按钮操作 */
-    handleDelete(row) {
-      const ids = row.id || this.ids;
-      uni.showModal({
-        title: '提示',
-        content: '是否确认删除该推荐记录？',
-        success: (res) => {
-          if (res.confirm) {
-            delRecommend(ids).then(() => {
-              this.getList();
-              uni.showToast({
-                title: '删除成功',
-                icon: 'success'
-              });
-            });
-          }
-        }
-      });
-    },
-    
-    /** 导出按钮操作 */
-    handleExport() {
-      uni.showToast({
-        title: '导出功能开发中',
-        icon: 'none'
-      });
-    },
-    
-    /** 查看菜品详情 */
-    handleViewDish(dishes, index) {
-      try {
-        const dishesList = JSON.parse(dishes);
-        this.viewForm = dishesList[index];
-        this.$refs.dishDetailPopup.open();
-      } catch (error) {
-        console.error('解析菜品数据失败:', error);
+    /** 确认批量推荐 */
+    handleBatchConfirm() {
+      if (this.selectedDishes.length === 0) {
         uni.showToast({
-          title: '获取菜品详情失败',
+          title: '请至少选择一个菜品',
           icon: 'none'
         });
+        return;
       }
-    },
-    
-    /** 关闭菜品详情 */
-    closeDishDetail() {
-      this.$refs.dishDetailPopup.close();
-      this.viewForm = null;
-    },
-    
-    /** 获取用户名 */
-    getUserName(userId) {
-      const user = this.userList.find(item => item.userId === userId);
-      return user ? user.userName : '未知用户';
-    },
-    
-    /** 显示用户详情 */
-    showUserDetail(userId) {
-      getUser(userId).then(response => {
-        this.detailForm = response.data;
-        this.$refs.userDetailPopup.open();
+
+      // 获取选中的菜品数据
+      const selectedDishData = this.allDishList.filter(dish => 
+        this.selectedDishes.includes(dish.managementId)
+      );
+
+      // 显示加载提示
+      uni.showLoading({
+        title: '正在推荐...',
+        mask: true
       });
-    },
-    
-    /** 关闭用户详情 */
-    closeUserDetail() {
-      this.$refs.userDetailPopup.close();
-      this.detailForm = {};
-    },
-    
-    /** 显示用户搜索弹窗 */
-    showUserSearch() {
-      this.$refs.userSearchPopup.open();
-    },
-    
-    /** 关闭用户搜索弹窗 */
-    closeUserSearch() {
-      this.$refs.userSearchPopup.close();
-    },
-    
-    /** 处理用户选择 */
-    handleUserSelect(user) {
-      if (this.$refs.formPopup.isOpen) {
-        // 编辑表单选择用户
-        this.form.recommendTo = user.userId;
-        this.form.userName = user.userName;
-      } else {
-        // 查询表单选择用户
-        this.queryParams.recommendTo = user.userId;
-        this.queryParams.userName = user.userName;
-        this.handleQuery();
-      }
-      this.closeUserSearch();
-    },
-    
-    /** 解析菜品数据 */
-    parseDishes(dishes) {
-      try {
-        return JSON.parse(dishes);
-      } catch (e) {
-        return [];
-      }
-    },
-    
-    /** 解析食材数据 */
-    parseIngredients(ingredients) {
-      try {
-        return JSON.parse(ingredients);
-      } catch (e) {
-        return [];
-      }
-    },
-    
-    /** 解析步骤数据 */
-    parseSteps(steps) {
-      try {
-        return JSON.parse(steps);
-      } catch (e) {
-        return [];
-      }
-    },
-    
-    /** 推荐类型选择器变化 */
-    handleTypeChange(e) {
-      this.typeIndex = e.detail.value;
-      this.queryParams.type = this.typeOptions[this.typeIndex].value || null;
-    },
-    
-    /** 表单推荐类型选择器变化 */
-    handleFormTypeChange(e) {
-      this.formTypeIndex = e.detail.value;
-      this.form.type = parseInt(this.formTypeOptions[this.formTypeIndex].value);
-    },
-    
-    /** 获取推荐类型文本 */
-    getTypeText(type) {
-      const option = this.typeOptions.find(item => item.value === type.toString());
-      return option ? option.label : '未知类型';
-    },
-    
-    /** 获取推荐类型样式类 */
-    getTypeClass(type) {
-      const typeMap = {
-        '0': 'type-taste',
-        '1': 'type-health',
-        '2': 'type-disease'
+
+      // 串行处理每个菜品
+      const processDish = async (index) => {
+        if (index >= selectedDishData.length) {
+          // 所有菜品处理完成
+          uni.hideLoading();
+          uni.showToast({
+            title: '批量推荐完成',
+            icon: 'success'
+          });
+          this.closeBatchPopup();
+          this.getRecommendList();
+          return;
+        }
+
+        const dish = selectedDishData[index];
+        try {
+          // 创建菜品
+          const createResult = await addManagement({
+            name: dish.name,
+            price: dish.price,
+            image: dish.image,
+            tag: dish.tag,
+            flavor: dish.flavor,
+            tip: dish.tip
+          });
+
+          // 添加映射关系
+          await addCanteen_dish_relationship({
+            canteenId: this.queryParams.canteenId,
+            dishId: createResult.data.managementId
+          });
+
+          // 处理下一个菜品
+          processDish(index + 1);
+        } catch (error) {
+          console.error('处理菜品失败:', error);
+          uni.hideLoading();
+          uni.showToast({
+            title: `第 ${index + 1} 个菜品推荐失败`,
+            icon: 'error'
+          });
+          // 继续处理下一个
+          processDish(index + 1);
+        }
       };
-      return typeMap[type] || '';
-    },
-    
-    /** 获取口味文本 */
-    getFlavorText(flavor) {
-      const flavors = {
-        '1': '清淡',
-        '2': '适中',
-        '3': '重口'
-      };
-      return flavors[flavor] || '未知口味';
-    },
-    
-    /** 获取性别文本 */
-    getSexText(sex) {
-      const sexes = {
-        '0': '男',
-        '1': '女',
-        '2': '未知'
-      };
-      return sexes[sex] || '未知';
-    },
-    
-    /** 表单是否合理选择器变化 */
-    handleFormIsOkChange(e) {
-      this.form.isOk = parseInt(e.detail.value);
+
+      // 开始处理第一个菜品
+      processDish(0);
     },
   }
 };
 </script>
 
 <style lang="scss" scoped>
-.recommend-container {
+.app-container {
   padding: 20rpx;
   background: #f5f7fa;
   min-height: 100vh;
 }
 
-.search-form {
+.canteen-select {
   background: #fff;
-  border-radius: 20rpx;
-  padding: 30rpx;
+  border-radius: 12rpx;
+  padding: 20rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 
-  .form-item {
-    margin-bottom: 20rpx;
+  .select-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10rpx 0;
+    cursor: pointer;
 
-    .label {
-      font-size: 28rpx;
-      color: #606266;
-      margin-bottom: 10rpx;
-      display: block;
-    }
-
-    .picker-value, .user-select, .input {
-      height: 80rpx;
-      line-height: 80rpx;
-      padding: 0 20rpx;
-      background: #f5f7fa;
-      border-radius: 10rpx;
-      font-size: 28rpx;
+    .header-title {
+      font-size: 32rpx;
+      font-weight: bold;
       color: #303133;
     }
+  }
 
-    .user-select {
+  .selected-canteen {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20rpx;
+    background: #f0f9eb;
+    border-radius: 8rpx;
+    border: 2rpx solid #67C23A;
+
+    .canteen-info {
+      flex: 1;
+      margin-right: 20rpx;
+
+      .canteen-name {
+        font-size: 28rpx;
+        font-weight: bold;
+        color: #303133;
+        margin-bottom: 8rpx;
+        display: block;
+      }
+
+      .canteen-desc {
+        font-size: 24rpx;
+        color: #909399;
+        display: block;
+      }
+    }
+
+    .change-btn {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      font-size: 26rpx;
+      color: #409EFF;
+      background: none;
+      border: none;
+      padding: 0;
+
+      &::after {
+        border: none;
+      }
+    }
+  }
+
+  .canteen-list {
+    margin-top: 20rpx;
+    max-height: 600rpx;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+
+    &::-webkit-scrollbar {
+      width: 6rpx;
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #dcdfe6;
+      border-radius: 3rpx;
+    }
+
+    .canteen-card {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 20rpx;
+      border-radius: 8rpx;
+      background: #f5f7fa;
+      margin-bottom: 20rpx;
+      border: 2rpx solid transparent;
+      transition: all 0.3s;
+
+      &.active {
+        background: #f0f9eb;
+        border-color: #67C23A;
+      }
+
+      .canteen-info {
+        flex: 1;
+        margin-right: 20rpx;
+
+        .canteen-name {
+          font-size: 28rpx;
+          font-weight: bold;
+          color: #303133;
+          margin-bottom: 8rpx;
+          display: block;
+        }
+
+        .canteen-desc {
+          font-size: 24rpx;
+          color: #909399;
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+.recommend-section {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20rpx;
+
+    .section-title {
+      font-size: 32rpx;
+      font-weight: bold;
+      color: #303133;
     }
 
-    .input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .radio-group {
+    .header-actions {
       display: flex;
-      gap: 30rpx;
+      align-items: center;
+      gap: 16rpx;
 
-      .radio {
+      .action-btn {
         display: flex;
         align-items: center;
         gap: 8rpx;
-      }
-    }
-  }
+        font-size: 26rpx;
+        color: #409EFF;
+        background: #f0f9ff;
+        border: 2rpx solid #409EFF;
+        border-radius: 32rpx;
+        padding: 12rpx 24rpx;
+        transition: all 0.3s ease;
 
-  .form-buttons {
-    display: flex;
-    gap: 20rpx;
-    margin-top: 30rpx;
+        &::after {
+          border: none;
+        }
 
-    button {
-      flex: 1;
-      height: 80rpx;
-      line-height: 80rpx;
-      font-size: 28rpx;
-      border-radius: 10rpx;
-
-      &.search-btn {
-        background: #409EFF;
-        color: #fff;
-      }
-
-      &.reset-btn {
-        background: #f5f7fa;
-        color: #606266;
+        &:active {
+          transform: scale(0.98);
+        }
       }
     }
   }
 }
 
-.action-buttons {
-  display: flex;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
-
-  .action-btn {
-    flex: 1;
-    height: 80rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10rpx;
-    font-size: 28rpx;
-    color: #fff;
-    border-radius: 10rpx;
-
-    &.add-btn {
-      background: #409EFF;
-    }
-
-    &.edit-btn {
-      background: #67C23A;
-    }
-
-    &.delete-btn {
-      background: #F56C6C;
-    }
-
-    &.export-btn {
-      background: #909399;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-    }
-  }
-}
-
-.data-list {
-  .list-item {
+.dish-list {
+  .dish-card {
     background: #fff;
-    border-radius: 20rpx;
+    border-radius: 12rpx;
     padding: 30rpx;
     margin-bottom: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 
-    .item-header {
+    &:active {
+      transform: translateY(2rpx);
+    }
+
+    .dish-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20rpx;
 
-      .user-name {
+      .dish-name {
         font-size: 32rpx;
         font-weight: bold;
-        color: #409EFF;
+        color: #303133;
       }
 
-      .recommend-status {
-        font-size: 24rpx;
-        padding: 4rpx 16rpx;
-        border-radius: 20rpx;
-
-        &.status-ok {
-          background: #f6ffed;
-          color: #52c41a;
-        }
-
-        &.status-no {
-          background: #fff2f0;
-          color: #ff4d4f;
-        }
+      .dish-price {
+        font-size: 32rpx;
+        color: #F56C6C;
+        font-weight: bold;
       }
     }
 
-    .item-content {
-      .content-row {
+    .dish-content {
+      display: flex;
+      gap: 24rpx;
+      margin-bottom: 20rpx;
+
+      .dish-image {
+        width: 200rpx;
+        height: 200rpx;
+        border-radius: 8rpx;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+
+        &:active {
+          transform: scale(0.98);
+        }
+      }
+
+      .dish-info {
+        flex: 1;
         display: flex;
-        margin-bottom: 10rpx;
-        font-size: 28rpx;
+        flex-direction: column;
+        gap: 12rpx;
+        min-width: 0;
 
-        .label {
-          color: #909399;
-          width: 160rpx;
-        }
-
-        .value {
-          color: #303133;
-          flex: 1;
-        }
-
-        .dish-list {
-          flex: 1;
+        .info-item {
+          font-size: 26rpx;
+          line-height: 1.5;
           display: flex;
-          flex-wrap: wrap;
-          gap: 10rpx;
+          align-items: flex-start;
 
-          .dish-tag {
-            background: #f5f7fa;
-            color: #409EFF;
-            padding: 4rpx 16rpx;
-            border-radius: 20rpx;
-            font-size: 24rpx;
+          .label {
+            color: #909399;
+            flex-shrink: 0;
+            margin-right: 8rpx;
+          }
+
+          .value {
+            color: #303133;
+            flex: 1;
+            min-width: 0;
           }
         }
       }
     }
 
-	.item-actions {
-	  display: flex;
-	  justify-content: flex-end;
-	  gap: 20rpx;
-	  margin-top: 20rpx;
-	  padding-top: 20rpx;
-	  border-top: 1px solid #f5f5f5;
+    .dish-footer {
+      display: flex;
+      justify-content: stretch;
+      margin-top: 20rpx;
+      padding-top: 20rpx;
+      border-top: 1px solid #f0f0f0;
 
-	  .action-link {
-		font-size: 28rpx;
-		color: #409EFF;
-		background: none;
-		padding: 0;
-		line-height: 1;
-		border: none; /* 移除边框 */
-		border-radius: 0; /* 移除圆角 */
-		box-shadow: none; /* 移除阴影 */
-		
-		&::after {
-		  border: none; /* 移除小程序默认边框 */
-		}
+      .recommend-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8rpx;
+        font-size: 28rpx;
+        padding: 20rpx 0;
+        border-radius: 8rpx;
+        background: #f0f9ff;
+        color: #409EFF;
+        border: 2rpx solid #409EFF;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin: 0;
 
-		&.delete {
-		  color: #F56C6C;
-		  border: none; /* 确保删除按钮也没有边框 */
-		}
-	  }
-	}
+        &::after {
+          border: none;
+        }
+
+        &:active {
+          transform: scale(0.98);
+          opacity: 0.9;
+        }
+
+        &.recommended {
+          background: #67C23A;
+          border-color: #67C23A;
+          color: #fff;
+          
+          &:active {
+            background: #85ce61;
+            border-color: #85ce61;
+          }
+        }
+
+        &:not(.recommended) {
+          &:active {
+            background: #ecf5ff;
+            border-color: #79bbff;
+          }
+        }
+      }
+    }
+  }
+}
+
+.loading-box {
+  padding: 40rpx 0;
+  text-align: center;
+}
+
+.empty-box {
+  padding: 60rpx 0;
+  text-align: center;
+
+  .empty-text {
+    font-size: 28rpx;
+    color: #909399;
+  }
+}
+
+.empty-tip {
+  padding: 60rpx 0;
+  text-align: center;
+
+  .tip-text {
+    font-size: 28rpx;
+    color: #909399;
   }
 }
 
 .pagination {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   margin-top: 30rpx;
   padding: 20rpx;
   background: #fff;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 
   .page-info {
-    font-size: 28rpx;
+    text-align: center;
+    font-size: 26rpx;
     color: #909399;
     margin-bottom: 20rpx;
   }
 
   .page-buttons {
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 20rpx;
 
     .page-btn {
-      width: 160rpx;
-      height: 60rpx;
-      line-height: 60rpx;
+      min-width: 160rpx;
+      height: 64rpx;
+      line-height: 64rpx;
       font-size: 28rpx;
       color: #409EFF;
-      background: #f5f7fa;
-      border-radius: 30rpx;
+      background: #f0f9ff;
+      border: 2rpx solid #409EFF;
+      border-radius: 32rpx;
+      padding: 0 30rpx;
+      transition: all 0.3s ease;
+
+      &::after {
+        border: none;
+      }
+
+      &:active {
+        transform: scale(0.98);
+        opacity: 0.8;
+      }
 
       &:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
+        background: #f5f7fa;
+        border-color: #dcdfe6;
+        color: #909399;
+        transform: none;
       }
     }
 
     .page-text {
       font-size: 28rpx;
       color: #606266;
+      min-width: 120rpx;
+      text-align: center;
     }
   }
 }
 
-.popup-content {
+.batch-popup {
   background: #fff;
-  border-radius: 20rpx;
+  border-radius: 12rpx;
   width: 90vw;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 750rpx;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 30rpx;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 2rpx solid #f0f0f0;
 
     .popup-title {
       font-size: 32rpx;
       font-weight: bold;
       color: #303133;
     }
+  }
 
-    .close-btn {
+  .popup-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20rpx;
+
+    .dish-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20rpx;
       padding: 10rpx;
-      background: none;
-      border: none;
-      line-height: 1;
-    }
-  }
 
-  .popup-body {
-    padding: 30rpx;
-  }
-}
+      .dish-item {
+        position: relative;
+        background: #fff;
+        border-radius: 12rpx;
+        overflow: hidden;
+        box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+        border: 2rpx solid transparent;
+        transition: all 0.3s ease;
 
-.dish-detail-popup {
-  .dish-detail {
-    .dish-image {
-      width: 100%;
-      height: 400rpx;
-      border-radius: 10rpx;
-      margin-bottom: 20rpx;
-    }
-
-    .dish-info {
-      .dish-name {
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #303133;
-        margin-bottom: 20rpx;
-        display: block;
-      }
-
-      .dish-tags {
-        display: flex;
-        gap: 20rpx;
-        margin-bottom: 20rpx;
-
-        .tag {
-          background: #f5f7fa;
-          color: #606266;
-          padding: 4rpx 16rpx;
-          border-radius: 20rpx;
-          font-size: 24rpx;
-        }
-      }
-
-      .dish-meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 30rpx;
-
-        .price {
-          font-size: 32rpx;
-          color: #f56c6c;
-          font-weight: bold;
+        &.selected {
+          border-color: #67C23A;
+          background: #f0f9eb;
         }
 
-        .view {
-          font-size: 24rpx;
-          color: #909399;
-        }
-      }
-
-      .dish-section {
-        margin-bottom: 30rpx;
-
-        .section-title {
-          font-size: 28rpx;
-          font-weight: bold;
-          color: #303133;
-          margin-bottom: 20rpx;
-          display: block;
+        .dish-image {
+          width: 100%;
+          height: 200rpx;
+          object-fit: cover;
         }
 
-        .ingredient-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10rpx;
+        .dish-info {
+          padding: 16rpx;
 
-          .ingredient-tag {
-            background: #f5f7fa;
-            color: #606266;
-            padding: 4rpx 16rpx;
-            border-radius: 20rpx;
-            font-size: 24rpx;
-          }
-        }
-
-        .step-list {
-          .step-item {
-            display: flex;
-            margin-bottom: 20rpx;
-
-            .step-number {
-              width: 120rpx;
-              font-size: 28rpx;
-              color: #409EFF;
-              font-weight: bold;
-            }
-
-            .step-desc {
-              flex: 1;
-              font-size: 28rpx;
-              color: #606266;
-            }
-          }
-        }
-
-        .tip-text, .remark-text {
-          font-size: 28rpx;
-          color: #606266;
-          line-height: 1.6;
-        }
-      }
-    }
-  }
-}
-
-.user-detail-popup {
-  .user-detail {
-    .user-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 30rpx;
-
-      .user-avatar {
-        width: 120rpx;
-        height: 120rpx;
-        border-radius: 60rpx;
-        margin-right: 20rpx;
-      }
-
-      .user-basic {
-        .user-nickname {
-          font-size: 32rpx;
-          font-weight: bold;
-          color: #303133;
-          margin-bottom: 10rpx;
-          display: block;
-        }
-
-        .user-name {
-          font-size: 28rpx;
-          color: #909399;
-        }
-      }
-    }
-
-    .info-section {
-      background: #f5f7fa;
-      border-radius: 10rpx;
-      padding: 20rpx;
-      margin-bottom: 30rpx;
-
-      .info-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 20rpx;
-        font-size: 28rpx;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        .label {
-          color: #909399;
-        }
-
-        .value {
-          color: #303133;
-
-          &.status-tag {
-            padding: 4rpx 16rpx;
-            border-radius: 20rpx;
-            font-size: 24rpx;
-
-            &.status-normal {
-              background: #f6ffed;
-              color: #52c41a;
-            }
-
-            &.status-disabled {
-              background: #fff2f0;
-              color: #ff4d4f;
-            }
-          }
-        }
-      }
-    }
-
-    .health-section, .preference-section {
-      margin-bottom: 30rpx;
-
-      .section-title {
-        font-size: 32rpx;
-        font-weight: bold;
-        color: #303133;
-        margin-bottom: 20rpx;
-        display: block;
-        padding-left: 20rpx;
-        border-left: 8rpx solid #409EFF;
-      }
-
-      .health-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20rpx;
-
-        .health-item {
-          background: #f5f7fa;
-          border-radius: 10rpx;
-          padding: 20rpx;
-          text-align: center;
-
-          .label {
-            font-size: 24rpx;
-            color: #909399;
-            margin-bottom: 10rpx;
+          .dish-name {
+            font-size: 28rpx;
+            color: #303133;
+            margin-bottom: 8rpx;
             display: block;
           }
 
-          .value {
-            font-size: 28rpx;
-            color: #303133;
+          .dish-price {
+            font-size: 26rpx;
+            color: #F56C6C;
             font-weight: bold;
           }
         }
-      }
 
-      .preference-grid {
-        .preference-item {
-          margin-bottom: 20rpx;
-
-          .label {
-            font-size: 28rpx;
-            color: #909399;
-            margin-bottom: 10rpx;
-            display: block;
-          }
-
-          .value {
-            font-size: 28rpx;
-            color: #303133;
-          }
-
-          .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10rpx;
-
-            .tag {
-              padding: 4rpx 16rpx;
-              border-radius: 20rpx;
-              font-size: 24rpx;
-
-              &.warning {
-                background: #fff7e6;
-                color: #fa8c16;
-              }
-
-              &.info {
-                background: #f4f4f5;
-                color: #909399;
-              }
-            }
-          }
+        .select-icon {
+          position: absolute;
+          top: 10rpx;
+          right: 10rpx;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 50%;
+          padding: 4rpx;
         }
       }
     }
   }
-}
 
-.form-popup {
-  .form-content {
-    .form-item {
-      margin-bottom: 30rpx;
-
-      .label {
-        font-size: 28rpx;
-        color: #606266;
-        margin-bottom: 10rpx;
-        display: block;
-      }
-
-      .picker-value {
-        height: 80rpx;
-        line-height: 80rpx;
-        padding: 0 20rpx;
-        background: #f5f7fa;
-        border-radius: 10rpx;
-        font-size: 28rpx;
-        color: #303133;
-      }
-    }
-  }
-
-  .form-buttons {
+  .popup-footer {
     display: flex;
+    justify-content: flex-end;
     gap: 20rpx;
-    margin-top: 30rpx;
+    padding: 20rpx;
+    border-top: 2rpx solid #f0f0f0;
 
     button {
-      flex: 1;
-      height: 80rpx;
-      line-height: 80rpx;
+      min-width: 160rpx;
+      height: 64rpx;
+      line-height: 64rpx;
       font-size: 28rpx;
-      border-radius: 10rpx;
+      border-radius: 32rpx;
+      padding: 0 30rpx;
 
-      &.submit-btn {
-        background: #409EFF;
-        color: #fff;
+      &::after {
+        border: none;
       }
 
       &.cancel-btn {
-        background: #f5f7fa;
-        color: #606266;
+        color: #909399;
+        background: #f4f4f5;
+        border: 2rpx solid #dcdfe6;
+      }
+
+      &.confirm-btn {
+        color: #fff;
+        background: #409EFF;
+        border: 2rpx solid #409EFF;
+      }
+
+      &:active {
+        transform: scale(0.98);
+        opacity: 0.9;
       }
     }
   }
-}
-
-.type-tag {
-  display: inline-block;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  
 }
 </style> 

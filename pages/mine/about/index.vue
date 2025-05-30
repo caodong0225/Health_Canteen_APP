@@ -3,13 +3,13 @@
     <view class="header-section text-center">
       <image style="width: 180rpx;height: 180rpx;" src="/static/logo200.png" mode="widthFix">
       </image>
-      <uni-title type="h2" title="智膳云枢"></uni-title>
-      <text class="subtitle">智慧膳食 · 健康生活</text>
+      <uni-title type="h2" title="iDiet"></uni-title>
+      <text class="subtitle">iDiet · 健康生活</text>
     </view>
 
     <view class="content-section">
       <view class="description-box">
-        <text class="description-text">智膳云枢是一款专注于健康膳食管理的智能平台，致力于为用户提供个性化的健康饮食解决方案。通过智能算法和专业的营养分析，帮助用户实现科学饮食、健康生活的目标。</text>
+        <text class="description-text">iDiet是一款专注于健康膳食管理的智能平台，致力于为用户提供个性化的健康饮食解决方案。通过智能算法和专业的营养分析，帮助用户实现科学饮食、健康生活的目标。</text>
       </view>
 
       <view class="menu-list">
@@ -61,7 +61,7 @@
     </view>
 
     <view class="copyright">
-      <view>Copyright &copy; {{currentYear}} 智膳云枢 All Rights Reserved.</view>
+      <view>Copyright &copy; {{currentYear}} iDiet All Rights Reserved.</view>
       <view class="copyright-sub">让健康饮食更简单</view>
     </view>
   </view>

@@ -377,7 +377,18 @@ export default {
         { value: "慢性胃炎", label: "慢性胃炎" },
         { value: "慢性肝炎", label: "慢性肝炎" },
         { value: "慢性胆囊炎", label: "慢性胆囊炎" }
-      ]
+      ],
+      // 是否显示弹出层
+      open: false,
+      // 表单校验规则
+      rules: {
+        userId: [
+          { required: true, message: "请选择用户", trigger: "change" }
+        ],
+        disease: [
+          { required: true, message: "请选择疾病", trigger: "change" }
+        ]
+      }
     };
   },
   computed: {
@@ -447,25 +458,44 @@ export default {
     handleAdd() {
       this.reset();
       this.title = "添加特殊疾病人群关系";
-      this.$refs.formPopup.open();
+      this.open = true;
     },
     // 修改按钮操作
-    handleUpdate() {
-      if (!this.selectedId) {
+    handleUpdate(row) {
+      this.reset();
+      const id = row.id || this.selectedId;
+      if (!id) {
         uni.showToast({
           title: '请选择要修改的数据',
           icon: 'none'
         });
         return;
       }
-      this.reset();
-      getUser_diseases_relationship(this.selectedId).then(response => {
-        this.form = response.data;
-        this.form.disease = Array.isArray(this.form.disease)
-          ? this.form.disease
-          : JSON.parse(this.form.disease || '[]');
-        this.title = "修改特殊疾病人群关系";
-        this.$refs.formPopup.open();
+      getUser_diseases_relationship(id).then(response => {
+        if (response.code === 200 && response.data) {
+          this.form = {
+            ...response.data,
+            disease: Array.isArray(response.data.disease) 
+              ? response.data.disease 
+              : JSON.parse(response.data.disease || '[]')
+          };
+          this.title = "修改特殊疾病人群关系";
+          this.open = true;
+          this.$nextTick(() => {
+            this.$refs.formPopup.open();
+          });
+        } else {
+          uni.showToast({
+            title: '获取数据失败',
+            icon: 'none'
+          });
+        }
+      }).catch(error => {
+        console.error('获取数据失败:', error);
+        uni.showToast({
+          title: '获取数据失败',
+          icon: 'none'
+        });
       });
     },
     // 删除按钮操作
@@ -558,9 +588,10 @@ export default {
         this.form.disease.push(disease);
       }
     },
-    // 提交表单
+    // 提交按钮
     submitForm() {
-      if (!this.form.userId) {
+      // 表单验证
+      if (!this.form.userId && this.title.startsWith('添加')) {
         uni.showToast({
           title: '请选择用户',
           icon: 'none'
@@ -580,28 +611,57 @@ export default {
         disease: JSON.stringify(this.form.disease)
       };
 
-      if (this.form.id) {
-        updateUser_diseases_relationship(submitData).then(() => {
+      if (this.form.id != null) {
+        updateUser_diseases_relationship(submitData).then(response => {
+          if (response.code === 200) {
+            uni.showToast({
+              title: '修改成功',
+              icon: 'success'
+            });
+            this.open = false;
+            this.$refs.formPopup.close();
+            this.getList();
+          } else {
+            uni.showToast({
+              title: response.msg || '修改失败',
+              icon: 'none'
+            });
+          }
+        }).catch(error => {
+          console.error('修改失败:', error);
           uni.showToast({
-            title: '修改成功',
-            icon: 'success'
+            title: '修改失败',
+            icon: 'none'
           });
-          this.$refs.formPopup.close();
-          this.getList();
         });
       } else {
-        addUser_diseases_relationship(submitData).then(() => {
+        addUser_diseases_relationship(submitData).then(response => {
+          if (response.code === 200) {
+            uni.showToast({
+              title: '新增成功',
+              icon: 'success'
+            });
+            this.open = false;
+            this.$refs.formPopup.close();
+            this.getList();
+          } else {
+            uni.showToast({
+              title: response.msg || '新增失败',
+              icon: 'none'
+            });
+          }
+        }).catch(error => {
+          console.error('新增失败:', error);
           uni.showToast({
-            title: '新增成功',
-            icon: 'success'
+            title: '新增失败',
+            icon: 'none'
           });
-          this.$refs.formPopup.close();
-          this.getList();
         });
       }
     },
     // 取消按钮
     cancel() {
+      this.open = false;
       this.$refs.formPopup.close();
       this.reset();
     },
